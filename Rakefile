@@ -160,8 +160,10 @@ namespace :slack do
         channel: 'C03N711HVDG', format: :failure },
       { when: { outcome: 'success' },
         channel: 'C023XUE76GH', format: :success },
+      # Failures go to builds, not team-dev (org default), to keep noise out
+      # of a popular channel while this pipeline beds in.
       { when: {},
-        channel: 'C01TVGGB0F6', format: :failure }
+        channel: 'C023XUE76GH', format: :failure }
     ]
   end
 end

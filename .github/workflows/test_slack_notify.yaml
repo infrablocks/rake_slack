@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install tools
         uses: infrablocks/github-actions/asdf_install@v1
-      - name: human failure -> team-dev
+      - name: human failure -> builds
         run: ./go "slack:notify[failure]"
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
