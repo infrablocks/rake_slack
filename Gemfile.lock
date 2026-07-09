@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rake_slack (0.2.0.pre.2)
+    rake_slack (0.3.0)
       excon (>= 0.72, < 2.0)
       rake_factory (~> 0.33)
 
