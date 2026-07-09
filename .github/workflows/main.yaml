@@ -1,0 +1,100 @@
+name: Main
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  skip-ci-check:
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip_ci: ${{ steps.skip_ci_check.outputs.should_skip_ci }}
+    steps:
+      - id: skip_ci_check
+        env:
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [[ "$HEAD_COMMIT_MESSAGE" == *"[no ci]"* ]] \
+            || [[ "$HEAD_COMMIT_MESSAGE" == *"[skip ci]"* ]] \
+            || [[ "$HEAD_COMMIT_MESSAGE" == *"[ci skip]"* ]]; then
+            echo "should_skip_ci=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_skip_ci=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  check:
+    needs: skip-ci-check
+    if: needs.skip-ci-check.outputs.should_skip_ci != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        uses: infrablocks/github-actions/asdf_install@v1
+      - name: Check
+        run: ./go library:check
+      - name: Notify Slack
+        if: always()
+        run: ./go "slack:notify[${{ job.status }}]"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  test:
+    needs: skip-ci-check
+    if: needs.skip-ci-check.outputs.should_skip_ci != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        uses: infrablocks/github-actions/asdf_install@v1
+      - name: Test
+        run: ./go test:unit
+      - name: Notify Slack
+        if: always()
+        run: ./go "slack:notify[${{ job.status }}]"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  prerelease:
+    needs: [check, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        uses: infrablocks/github-actions/asdf_install@v1
+      - name: Prerelease
+        run: ./go "version:bump[pre]" && ./go release
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+      - name: Push release commit
+        run: git push && git push --tags
+      - name: Notify Slack of release hold
+        run: ./go "slack:notify[success,on_hold]"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      - name: Notify Slack
+        if: always()
+        run: ./go "slack:notify[${{ job.status }}]"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  release:
+    needs: [prerelease]
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Install tools
+        uses: infrablocks/github-actions/asdf_install@v1
+      - name: Release
+        run: ./go "version:bump[minor]" && ./go release
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+      - name: Push release commit
+        run: git push && git push --tags
+      - name: Notify Slack
+        if: always()
+        run: ./go "slack:notify[${{ job.status }}]"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

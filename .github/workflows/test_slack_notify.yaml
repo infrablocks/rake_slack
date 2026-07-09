@@ -1,0 +1,92 @@
+name: Test slack:notify
+
+# Manually exercise every routing branch of the slack:notify task by dogfooding
+# the gem's own Rakefile routing_rules. A human watching the Slack channels can
+# verify routing from the labelled messages. Every job runs with fail-on-error
+# enabled so a silent delivery failure fails the run. NOTIFY_ACTOR simulates
+# the dependabot actor because GitHub Actions cannot override GITHUB_ACTOR.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  human-success:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        uses: infrablocks/github-actions/asdf_install@v1
+      - name: human success -> builds
+        run: ./go "slack:notify[success]"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          NOTIFY_FAIL_ON_ERROR: "true"
+
+  human-failure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        uses: infrablocks/github-actions/asdf_install@v1
+      - name: human failure -> team-dev
+        run: ./go "slack:notify[failure]"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          NOTIFY_FAIL_ON_ERROR: "true"
+
+  dependabot-success:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        uses: infrablocks/github-actions/asdf_install@v1
+      - name: dependabot success -> builds-dependabot
+        run: ./go "slack:notify[success]"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          NOTIFY_ACTOR: "dependabot[bot]"
+          NOTIFY_FAIL_ON_ERROR: "true"
+
+  dependabot-failure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        uses: infrablocks/github-actions/asdf_install@v1
+      - name: dependabot failure -> builds-dependabot
+        run: ./go "slack:notify[failure]"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          NOTIFY_ACTOR: "dependabot[bot]"
+          NOTIFY_FAIL_ON_ERROR: "true"
+
+  on-hold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        uses: infrablocks/github-actions/asdf_install@v1
+      - name: on_hold -> release
+        run: ./go "slack:notify[success,on_hold]"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          NOTIFY_FAIL_ON_ERROR: "true"
+
+  cancelled:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        uses: infrablocks/github-actions/asdf_install@v1
+      - name: cancelled -> no message
+        run: |
+          set -euo pipefail
+          output="$(./go "slack:notify[cancelled]" 2>&1)"
+          echo "$output"
+          if ! echo "$output" | grep -q "is silent; skipping"; then
+            echo "Expected cancelled run to be silenced." >&2
+            exit 1
+          fi
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          NOTIFY_FAIL_ON_ERROR: "true"

@@ -1,0 +1,60 @@
+name: Pull Request
+on:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        uses: infrablocks/github-actions/asdf_install@v1
+      - name: Check
+        run: ./go library:check
+      - name: Notify Slack
+        if: always()
+        run: ./go "slack:notify[${{ job.status }}]"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        uses: infrablocks/github-actions/asdf_install@v1
+      - name: Test
+        run: ./go test:unit
+      - name: Notify Slack
+        if: always()
+        run: ./go "slack:notify[${{ job.status }}]"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        uses: infrablocks/github-actions/asdf_install@v1
+      - name: Build
+        run: ./go library:build
+      - name: Notify Slack
+        if: always()
+        run: ./go "slack:notify[${{ job.status }}]"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  dependabot-auto-merge:
+    needs: [check, test, build]
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Enable auto-merge
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
