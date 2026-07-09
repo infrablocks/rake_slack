@@ -62,9 +62,9 @@ environment automatically.
 Invoke it from the command line:
 
 ```bash
-./go "slack:notify[success]"          # route on a success outcome
-./go "slack:notify[failure]"          # route on a failure outcome
-./go "slack:notify[success,on_hold]"  # release on-hold ping
+bundle exec rake "slack:notify[success]"          # route on a success outcome
+bundle exec rake "slack:notify[failure]"          # route on a failure outcome
+bundle exec rake "slack:notify[success,on_hold]"  # release on-hold ping
 ```
 
 ### Routing behaviour
@@ -85,7 +85,7 @@ Post an outcome from a workflow job (the token comes from a repository secret):
 ```yaml
 - name: Notify Slack
   if: always()
-  run: ./go "slack:notify[${{ job.status }}]"
+  run: bundle exec rake "slack:notify[${{ job.status }}]"
   env:
     SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 ```
@@ -99,10 +99,9 @@ After checking out the repo, run `bin/setup` to install dependencies. Then, run
 `bundle exec rake test:unit` to run the tests. You can also run `bin/console`
 for an interactive prompt that will allow you to experiment.
 
-To install this gem onto your local machine, run `bundle exec rake install`. To
-release a new version, update the version number in `version.rb`, and then run
-`bundle exec rake release`, which will create a git tag for the version, push
-git commits and tags, and push the `.gem` file to
+To release a new version, run `bundle exec rake "version:bump[minor]"` (or
+`major`/`patch`/`pre`) and then `bundle exec rake release`, which will create a
+git tag for the version, push git commits and tags, and push the `.gem` file to
 [rubygems.org](https://rubygems.org).
 
 ## Contributing
