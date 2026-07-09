@@ -166,6 +166,14 @@ namespace :slack do
   end
 end
 
+namespace :repository do
+  desc 'Set the git author for CI'
+  task :set_ci_author do
+    sh 'git config --global user.name "InfraBlocks CI"'
+    sh 'git config --global user.email "ci@infrablocks.com"'
+  end
+end
+
 namespace :version do
   desc 'Bump version for specified type (pre, major, minor, patch)'
   task :bump, [:type] do |_, args|

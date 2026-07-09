@@ -61,6 +61,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install tools
         uses: infrablocks/github-actions/asdf_install@v1
+      - name: Set CI git author
+        run: ./go repository:set_ci_author
       - name: Prerelease
         run: ./go "version:bump[pre]" && ./go release
         env:
@@ -87,6 +89,8 @@ jobs:
           ref: main
       - name: Install tools
         uses: infrablocks/github-actions/asdf_install@v1
+      - name: Set CI git author
+        run: ./go repository:set_ci_author
       - name: Release
         run: ./go "version:bump[minor]" && ./go release
         env:
