@@ -51,7 +51,7 @@ module RakeSlack
         if t.silent_outcomes.include?(outcome)
           log_silent(outcome)
         else
-          post(t, outcome, resolve_type(t, args))
+          post(t, outcome, args.type || t.type)
         end
       end
 
@@ -64,10 +64,6 @@ module RakeSlack
                 'Required argument outcome unset.'
         end
         outcome.to_s.downcase
-      end
-
-      def resolve_type(task, args)
-        args.type || task.type
       end
 
       def post(task, outcome, type)
@@ -88,11 +84,15 @@ module RakeSlack
         # rubocop:enable Style/StderrPuts
       end
 
+      # A routing miss is a config error: raises regardless of fail_on_error.
       def route(task, outcome, type)
         candidate = { outcome:, actor: task.actor, type: }
-        task.routing_rules.find do |rule|
-          rule[:when].all? { |key, value| candidate[key] == value }
+        rule = task.routing_rules.find do |r|
+          r[:when].all? { |key, value| candidate[key] == value }
         end
+        raise RakeSlack::Exceptions::NoMatchingRule, candidate unless rule
+
+        rule
       end
 
       def build_payload(task, channel, format, _outcome)

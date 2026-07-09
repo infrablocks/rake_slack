@@ -14,25 +14,35 @@ module RakeSlack
     end
 
     def post_message(payload)
-      response = Excon.post(
-        URL,
-        headers: {
-          'Authorization' => "Bearer #{@bot_token}",
-          'Content-Type' => 'application/json; charset=utf-8'
-        },
-        body: JSON.dump(payload)
-      )
-      assert_ok(response)
+      assert_ok(execute_post(payload))
+    rescue Excon::Error, SystemCallError, JSON::ParserError => e
+      raise RakeSlack::Exceptions::DeliveryFailed,
+            "Slack chat.postMessage failed: #{e.message}"
     end
 
     private
 
+    def execute_post(payload)
+      Excon.post(URL, headers:, body: JSON.dump(payload))
+    end
+
+    def headers
+      {
+        'Authorization' => "Bearer #{@bot_token}",
+        'Content-Type' => 'application/json; charset=utf-8'
+      }
+    end
+
     def assert_ok(response)
-      body = JSON.parse(response.body)
-      unless response.status == 200 && body['ok']
+      unless response.status == 200
         raise RakeSlack::Exceptions::DeliveryFailed,
-              'Slack chat.postMessage failed: ' \
-              "#{body['error'] || response.status}"
+              "Slack chat.postMessage failed: #{response.status}"
+      end
+
+      body = JSON.parse(response.body)
+      unless body['ok']
+        raise RakeSlack::Exceptions::DeliveryFailed,
+              "Slack chat.postMessage failed: #{body['error']}"
       end
       body
     end

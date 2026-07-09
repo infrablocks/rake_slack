@@ -244,6 +244,64 @@ describe RakeSlack::Tasks::Notify do
       .not_to(raise_error)
   end
 
+  it 'does not raise on a network failure by default' do
+    stub_broken_network
+    define_task(valid_opts)
+
+    expect { Rake::Task['slack:notify'].invoke('success') }
+      .not_to(raise_error)
+  end
+
+  it 'logs a network failure to stderr by default' do
+    stub_broken_network
+    define_task(valid_opts)
+
+    Rake::Task['slack:notify'].invoke('success')
+
+    expect($stderr).to(have_received(:puts).with(/host down/))
+  end
+
+  it 'raises a network failure as a delivery failure ' \
+     'when fail_on_error is true' do
+    stub_broken_network
+    define_task(valid_opts(fail_on_error: true))
+
+    expect { Rake::Task['slack:notify'].invoke('success') }
+      .to(raise_error(RakeSlack::Exceptions::DeliveryFailed))
+  end
+
+  it 'raises a clear configuration error when no routing rule matches' do
+    stub_slack_client
+    rules = [rule({ outcome: 'success' }, 'C023XUE76GH', :success)]
+    define_task(valid_opts(routing_rules: rules))
+
+    expect { Rake::Task['slack:notify'].invoke('failure') }
+      .to(raise_error(RakeSlack::Exceptions::NoMatchingRule,
+                      /catch-all.*when: \{\}/m))
+  end
+
+  it 'raises a routing miss even when fail_on_error is false' do
+    stub_slack_client
+    rules = [rule({ outcome: 'success' }, 'C023XUE76GH', :success)]
+    define_task(valid_opts(routing_rules: rules, fail_on_error: false))
+
+    expect { Rake::Task['slack:notify'].invoke('failure') }
+      .to(raise_error(RakeSlack::Exceptions::NoMatchingRule))
+  end
+
+  it 'normalises an uppercase non-silent outcome before routing' do
+    client = stub_slack_client
+    define_task(valid_opts)
+
+    Rake::Task['slack:notify'].invoke('SUCCESS')
+
+    expected = payload_for(
+      channel: 'C023XUE76GH',
+      format: format(colour: '#2eb67d', emoji: '✅', word: 'succeeded')
+    )
+    expect(client).to(have_received(:post_message).with(expected))
+  end
+
   it 'builds the summary from emoji, repository, word and workflow' do
     stub_slack_client
     define_task(valid_opts)
@@ -331,6 +389,13 @@ describe RakeSlack::Tasks::Notify do
     )
     allow(RakeSlack::Client).to(receive(:new).and_return(client))
     client
+  end
+
+  # Uses the real client so raw transport errors exercise the full
+  # task-and-client delivery path.
+  def stub_broken_network
+    socket_error = Excon::Error::Socket.new(SocketError.new('host down'))
+    allow(Excon).to(receive(:post).and_raise(socket_error))
   end
 
   def posted_payload

@@ -21,5 +21,10 @@ and this project adheres to
 - Silent outcomes (`cancelled`, `canceled`, `skipped`) skip delivery.
 - `on_hold` release notifications, dependabot routing, and human
   success/failure routing mirroring the org `slack_notify` composite action.
-- `fail_on_error` toggle: delivery failures are logged by default and only
-  raised when enabled.
+- `fail_on_error` toggle: delivery failures — including transport errors
+  (socket, timeout, connection refused) and non-JSON API responses, all
+  wrapped as `RakeSlack::Exceptions::DeliveryFailed` — are logged by default
+  and only raised when enabled.
+- A routing miss (no rule matches and no catch-all `when: {}` rule) raises
+  `RakeSlack::Exceptions::NoMatchingRule` regardless of `fail_on_error`, as
+  it is a configuration error.

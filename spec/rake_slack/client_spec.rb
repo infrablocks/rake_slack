@@ -51,4 +51,46 @@ describe RakeSlack::Client do
     expect { described_class.new('xoxb-token').post_message({}) }
       .to(raise_error(RakeSlack::Exceptions::DeliveryFailed, /500/))
   end
+
+  it 'wraps a transport error as a delivery failure' do
+    socket_error = Excon::Error::Socket.new(SocketError.new('host down'))
+    allow(Excon).to(receive(:post).and_raise(socket_error))
+
+    expect { described_class.new('xoxb-token').post_message({}) }
+      .to(raise_error(RakeSlack::Exceptions::DeliveryFailed, /host down/))
+  end
+
+  it 'wraps a timeout error as a delivery failure' do
+    allow(Excon).to(receive(:post).and_raise(Excon::Error::Timeout))
+
+    expect { described_class.new('xoxb-token').post_message({}) }
+      .to(raise_error(RakeSlack::Exceptions::DeliveryFailed))
+  end
+
+  it 'wraps a low-level system call error as a delivery failure' do
+    allow(Excon).to(receive(:post).and_raise(Errno::ECONNREFUSED))
+
+    expect { described_class.new('xoxb-token').post_message({}) }
+      .to(raise_error(RakeSlack::Exceptions::DeliveryFailed))
+  end
+
+  it 'raises a delivery failure for a non-JSON error body' do
+    stub_raw_response(status: 502, body: '<html>Bad Gateway</html>')
+
+    expect { described_class.new('xoxb-token').post_message({}) }
+      .to(raise_error(RakeSlack::Exceptions::DeliveryFailed, /502/))
+  end
+
+  it 'wraps a non-JSON success body as a delivery failure' do
+    stub_raw_response(status: 200, body: 'not json')
+
+    expect { described_class.new('xoxb-token').post_message({}) }
+      .to(raise_error(RakeSlack::Exceptions::DeliveryFailed))
+  end
+
+  def stub_raw_response(status:, body:)
+    response = instance_double(Excon::Response, status:, body:)
+    allow(Excon).to(receive(:post).and_return(response))
+    response
+  end
 end
