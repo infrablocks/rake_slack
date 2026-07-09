@@ -172,7 +172,7 @@ namespace :repository do
   desc 'Set the git author for CI'
   task :set_ci_author do
     sh 'git config --global user.name "InfraBlocks CI"'
-    sh 'git config --global user.email "ci@infrablocks.com"'
+    sh 'git config --global user.email "ci@infrablocks.io"'
   end
 end
 
