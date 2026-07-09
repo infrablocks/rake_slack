@@ -22,9 +22,9 @@ Gem::Specification.new do |spec|
   spec.email = ['maintainers@infrablocks.io']
 
   spec.summary = 'Rake tasks for posting CI build outcomes to Slack.'
-  spec.description = 'A configurable routing engine that posts GitHub ' \
-                     'Actions build outcomes to Slack channels via ' \
-                     'chat.postMessage.'
+  spec.description = 'A configurable routing engine that posts CI build ' \
+                     'outcomes to Slack channels via chat.postMessage, ' \
+                     'with GitHub Actions-friendly defaults.'
   spec.homepage = 'https://github.com/infrablocks/rake_slack'
   spec.license = 'MIT'
 

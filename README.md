@@ -1,9 +1,10 @@
 # RakeSlack
 
 Rake tasks for posting CI build outcomes to Slack. A configurable,
-first-match-wins routing engine posts GitHub Actions build outcomes to Slack
-channels via `chat.postMessage`. Channels are addressed by ID so channel
-renames do not break routing.
+first-match-wins routing engine posts build outcomes to Slack channels via
+`chat.postMessage`. Channels are addressed by ID so channel renames do not
+break routing. Works with any CI system; GitHub Actions gets sensible
+defaults out of the box.
 
 ## Installation
 
@@ -54,10 +55,14 @@ end
 
 This defines `slack:notify[outcome,type]`. `outcome` is the first bracket
 argument (typically the job status); `type` is an optional second argument
-(`build` by default, or `on_hold` for the release approval ping). The ambient
-GitHub context (`GITHUB_REPOSITORY`, `GITHUB_WORKFLOW`, `GITHUB_REF_NAME`,
-`GITHUB_ACTOR`, `GITHUB_SERVER_URL`, `GITHUB_RUN_ID`) is read from the
-environment automatically.
+(`build` by default, or `on_hold` for the release approval ping).
+
+The ambient build context (`repository`, `workflow`, `branch`, `actor` and
+`run_url`) defaults to the GitHub Actions environment variables
+(`GITHUB_REPOSITORY`, `GITHUB_WORKFLOW`, `GITHUB_REF_NAME`, `GITHUB_ACTOR`,
+`GITHUB_SERVER_URL`/`GITHUB_RUN_ID`), but each is an ordinary task parameter —
+on any other CI system, set them explicitly in the configuration block from
+that system's environment.
 
 Invoke it from the command line:
 
@@ -78,7 +83,7 @@ bundle exec rake "slack:notify[success,on_hold]"  # release on-hold ping
 - The colour, emoji and status word for each `format` key (`:success`,
   `:failure`, `:on_hold`) can be overridden via `t.formats`.
 
-### GitHub Actions
+### GitHub Actions example
 
 Post an outcome from a workflow job (the token comes from a repository secret):
 

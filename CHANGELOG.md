@@ -14,7 +14,8 @@ and this project adheres to
 
 - Initial release.
 - `RakeSlack.define_notification_tasks` defines a `slack:notify` task that
-  posts GitHub Actions build outcomes to Slack via `chat.postMessage`.
+  posts CI build outcomes to Slack via `chat.postMessage` (build context
+  defaults to the GitHub Actions environment variables).
 - Data-driven, first-match-wins channel routing via a consumer-supplied
   `routing_rules` table (channels addressed by ID so renames do not break
   routing).
